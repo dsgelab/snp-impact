@@ -1,8 +1,5 @@
 library(tidyverse)
 
-outcome_name <- "Breast cancer"
-sex <- "Female"
-
 get_ltr_overall <- function(outcome_name, sex) {
   # Load and filter GBD life tables -----------------------------------------
   lt <- read.csv("/Users/sakarijukarainen/Library/Mobile Documents/com~apple~CloudDocs/Documents/FIMM/GWAS Impact/Auxiliary data/IHME_GBD_2017_ABRIDGED_LIFE_TABLES_2017_Y2018M11D08.CSV")
@@ -110,4 +107,12 @@ get_ltr_overall <- function(outcome_name, sex) {
   return(ltr)
 }
 
-get_ltr_overall("Tracheal, bronchus, and lung cancer", "Male")
+outcome_name <- "Breast cancer"
+sex <- "Female"
+
+get_ltr_overall("Breast cancer", "Female")
+
+get_ltr_overall("Tracheal, bronchus, and lung cancer", "Both")
+
+
+
