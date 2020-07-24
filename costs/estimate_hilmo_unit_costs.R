@@ -12,12 +12,16 @@ unit_costs_hilmo$unit_cost <- as.numeric(unit_costs_hilmo$unit_cost)
 unit_costs_hilmo$ea <- as.character(unit_costs_hilmo$ea)
 
 startyear <- 1972
+endyear <- 2019
 
 # load custom more detailed longitudinal phenotype file for FinnGen and do some wrangling
 d <- fread("zcat finngen_R5_v3_custom_detailed_longitudinal_allcodes_REFINERY_ONLY.gz")
 dnames <- names(d)
 d$year <- decimal_date(as.Date(d$APPROX_EVENT_DAY))
 d <- d[year >= startyear]
+d <- d[year < endyear]
+
+
 d$rowindex <- 1:nrow(d)
 dhilmo <- d[SOURCE %in% c("INPAT", "OUTPAT")]
 dprim <- d[SOURCE == "PRIM_OUT"]
@@ -113,8 +117,8 @@ fg_df <- endbig[,keepcols_endbig]
 
 fg_df$YEAR_OF_BIRTH <- fg_df$BL_YEAR - fg_df$BL_AGE
 
-# make end of follow-up be death or 2017 if did not die during follow-up
-fg_df$FU_END <- ifelse(is.na(fg_df$DEATH_YEAR), 2017, fg_df$DEATH_YEAR)
+# make end of follow-up be death or 2019 if did not die during follow-up
+fg_df$FU_END <- ifelse(is.na(fg_df$DEATH_YEAR), 2019, fg_df$DEATH_YEAR)
 
 ## Calculate individual sums of costs for overall data
 # calculate sum of costs by id for inpatient and outpatient data from HILMO after 1998
@@ -198,7 +202,7 @@ for (i in 1:nrow(dhilmo_age)) {
     age_start <- 1972 - dhilmo_age$YEAR_OF_BIRTH[i]  # can be negative
     
     # calculate age at end of follow-up/death
-    yod <- ifelse(is.na(dhilmo_age$DEATH_YEAR[i]), 2017, dhilmo_age$DEATH_YEAR[i]) # if no death recorded, assume complete follow-up until 2017
+    yod <- ifelse(is.na(dhilmo_age$DEATH_YEAR[i]), 2019, dhilmo_age$DEATH_YEAR[i]) # if no death recorded, assume complete follow-up until 2019
     age_end <- yod - dhilmo_age$YEAR_OF_BIRTH[i]
 
     # set NA costs to 0 if follow-up started before upper bound of age interval
@@ -245,8 +249,6 @@ dhilmo_age_full <- left_join(dhilmo_age_full, fg_df[,c("FINNGENID", "YEAR_OF_BIR
 
 dhilmo_age <- dhilmo_age_full
 
-age_low <- seq(0, 80, 10)
-
 # convert temporarily to matrix for fast assignment (at least 1000x faster)
 dhilmo_agem <- as.matrix(dhilmo_age)
 
@@ -255,7 +257,7 @@ for (i in 1:nrow(dhilmo_age)) {
     age_start <- 1998 - dhilmo_age$YEAR_OF_BIRTH[i]  # can be negative
     
     # calculate age at end of follow-up/death
-    yod <- ifelse(is.na(dhilmo_age$DEATH_YEAR[i]), 2017, dhilmo_age$DEATH_YEAR[i]) # if no death recorded, assume complete follow-up until 2017
+    yod <- ifelse(is.na(dhilmo_age$DEATH_YEAR[i]), 2019, dhilmo_age$DEATH_YEAR[i]) # if no death recorded, assume complete follow-up until 2019
     age_end <- yod - dhilmo_age$YEAR_OF_BIRTH[i]
 
     # set NA costs to 0 if follow-up started before upper bound of age interval
