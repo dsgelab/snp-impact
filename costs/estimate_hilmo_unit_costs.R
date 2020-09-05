@@ -153,7 +153,7 @@ indiv_costs$HILMO_COSTS_INPATIENT <- ifelse(indiv_costs$FINNGENID %in% ids_pre19
                                           ifelse(is.na(indiv_costs$HILMO_COSTS_INPATIENT), 0, indiv_costs$HILMO_COSTS_INPATIENT))
 
 # save costs
-fwrite(indiv_costs, file="hilmo_costs/finngen_R5_overall_hilmo_costs.txt.gz")
+fwrite(indiv_costs, file="hilmo_costs/data/finngen_R5_overall_hilmo_costs.txt.gz")
 
 
 ## Calculate sums of costs by age group
@@ -217,7 +217,7 @@ for (i in 1:nrow(dhilmo_age)) {
 
 # convert back to data frame
 dhilmo_age <- as.data.frame(dhilmo_agem, stringsAsFactors=FALSE)
-fwrite(dhilmo_age[,1:10], file="hilmo_costs/finngen_R5_hilmo_inpatient_costs_by_age.txt.gz")
+fwrite(dhilmo_age[,1:10], file="hilmo_costs/data/finngen_R5_hilmo_inpatient_costs_by_age.txt.gz")
 
 
 
@@ -272,4 +272,4 @@ for (i in 1:nrow(dhilmo_age)) {
 # convert back to data frame
 dhilmo_age <- as.data.frame(dhilmo_agem, stringsAsFactors=FALSE)
 head(dhilmo_age)
-fwrite(dhilmo_age[,1:10], file="hilmo_costs/finngen_R5_hilmo_costs_by_age_post1998.txt.gz")
+fwrite(dhilmo_age[,1:10], file="hilmo_costs/data/finngen_R5_hilmo_costs_by_age_post1998.txt.gz")
