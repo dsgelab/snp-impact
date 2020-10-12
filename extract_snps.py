@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+##Mattia's script for extracting FinnGen genotypes
 import hail as hl
 hl.init()
 
