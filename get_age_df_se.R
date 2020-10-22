@@ -69,6 +69,10 @@ get_age_df_se <- function(endpoint, rsid, method, cohort, fg_df) {
             age_df$n_death[i] = sum(temp$death)
             age_df$n[i] = nrow(temp)
             age_df$n_outcome[i] = sum(temp$outcome)
+            
+            if (age_df$n_outcome[i] <= 40) {
+                next
+            }
 
             if (method == "coxph") {
               # predict outcome
