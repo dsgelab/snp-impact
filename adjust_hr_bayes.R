@@ -1,9 +1,3 @@
-m_vec <- seq(1,12,1)
-age_df_all <- bind_rows(age_df_list)
-age_df_all$mult <- NA
-age_df_all$hr01loci <- exp(age_df_all$loghr - 1.96 * age_df_all$loghr_se)
-age_df_all$hr01hici <- exp(age_df_all$loghr + 1.96 * age_df_all$loghr_se)
-
 adjust_hr_bayes <- function(age_df_all, mult) {
     # Bayesian adjustment of age group HR's
     bayes <- age_df_all %>% filter(method=="coxph")
@@ -26,8 +20,6 @@ adjust_hr_bayes <- function(age_df_all, mult) {
     m.po <- ifelse(is.na(m.po), m.pr, m.po)
     s.po <- ifelse(is.na(s.po), s.pr, s.po)
     
-    print(m.po)
-    print(s.po)
     bayes$loghr <- m.po
     bayes$loghr_se <- s.po
 
@@ -41,4 +33,3 @@ adjust_hr_bayes <- function(age_df_all, mult) {
     
     return(bayes)
 }
-

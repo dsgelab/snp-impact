@@ -1,0 +1,179 @@
+#removed code 14_12_2020
+
+sumstats <- readRDS("/home/jsjukara/finngen_data/summary_stats_preprocessed.rda")
+head(sumstats)
+
+
+get_hr_or <- function(cause, rsid, data) {
+    
+    data <- data[!is.na(data[,rsid]),]
+    cause_age <- paste(cause, "_AGE", sep="")
+    
+    form <- formula(paste(cause," ~ ", rsid, " + ", covariates_formula, sep=""))
+    
+    #fit_log <- glm(formula = form, data=data, family=binomial())
+    
+    # fit model, if error, return NA via tryCatch
+    fit_log <- tryCatch(suppressWarnings(glm(formula = form,
+                       data=data, family=binomial())), error=function(err) NA)
+                            
+    if (is.na(fit_log[1])) {
+        return(NULL)
+    }
+
+
+    #logor <- fit_log$coefficients[2]
+    #logor_se <- summary(fit_log)$coefficients[2,2]
+    #logor_z <- summary(fit_log)$coefficients[2,3]
+    #logor_pval <- summary(fit_log)$coefficients[2,4]
+
+    # predict outcome
+    form <- formula(paste("Surv(", cause_age, ", ", cause,") ~ ", rsid, " + ", covariates_formula, sep=""))
+    
+    fit_outcome <- tryCatch(suppressWarnings(coxph(formula = form,
+                       data=data)), error=function(err) NA)
+    if (is.na(fit_outcome)[1]) {
+      next
+    }
+    
+    #fit_outcome <- coxph(formula = form, data=data)
+    
+    results <- data.frame(cause=cause,
+                         rsid=rsid,
+                         loghr=fit_outcome$coefficients[1],
+                         loghr_se=summary(fit_outcome)$coefficients[1,3],
+                         loghr_z=summary(fit_outcome)$coefficients[1,4],
+                         loghr_p=summary(fit_outcome)$coefficients[1,5],
+                         logor=fit_log$coefficients[2],
+                         logor_se=summary(fit_log)$coefficients[2,2],
+                         logor_z=summary(fit_log)$coefficients[2,3],
+                         logor_p=summary(fit_log)$coefficients[2,4])
+    return(results)
+}
+
+            
+
+prune_250 <- fread("/home/jsjukara/pruning/pruning/g1000.chr1_23.EUR.maf_0.01.r2_0.1.p_1.kb250.clumped")
+prune_100 <- fread("/home/jsjukara/pruning/pruning/g1000.chr1_23.EUR.maf_0.01.r2_0.5.p_1.kb100.clumped")
+
+
+#get loci not pruned
+keep_250 <- paste("chr", prune_250$SNP, sep="")
+keep_100 <- paste("chr", prune_100$SNP, sep="")
+
+
+# join keep indicators from pruning process to genotype_freqs
+temp <- data.frame(locus=keep_250, prune_250=1, stringsAsFactors = FALSE)
+genotype_freqs <- left_join(genotype_freqs, temp)
+temp <- data.frame(locus=keep_100, prune_100=1, stringsAsFactors = FALSE)
+genotype_freqs <- left_join(genotype_freqs, temp)
+genotype_freqs$prune_250 <- ifelse(is.na(genotype_freqs$prune_250), 0, genotype_freqs$prune_250)
+genotype_freqs$prune_100 <- ifelse(is.na(genotype_freqs$prune_100), 0, genotype_freqs$prune_100)
+
+
+
+
+setwd("/home/jsjukara/")
+library(data.table)
+library(tidyverse)
+library(survival)
+library(tictoc)
+library(furrr)
+library(Matrix)
+library(tidyverse)
+library(data.table)
+# load GRM as data.frame
+grm <- fread("zcat /home/jsjukara/finngen_data/R6_GRM_V1_LD_0.1_maf0.05_geno0.03.gcta.grm.gz", data.table=FALSE)
+head(grm)
+# remove rows with relatedness under 0.1
+grm_sub <- grm %>% filter(grm$V4 >=0.1)
+# make data.frame into a dgCMatrix
+grm_sub_sparse <- sparseMatrix(i = grm_sub$V1, j = grm_sub$V2, x = grm_sub$V4, dims = c(51676, 51676), symmetric=TRUE)
+
+
+
+tail(grm_sub )
+max(grm_sub$V1)
+fg_df_sub <- fg_df[sample(1:nrow(fg_df), size=51676, replace=FALSE),]
+temp <- bdiag(grm_sub_sparse)
+head(temp)
+class(temp)library(lattice)
+
+library(MASS)
+library(Matrix)
+n_f <- 200
+mat_list <- list()
+size <- rep(5,n_f)
+offd <- 0.5
+for(i in 1:n_f)
+{
+  mat_list[[i]] <- matrix(offd,size[i],size[i])
+  diag(mat_list[[i]]) <- 1
+}
+sigma <- as.matrix(bdiag(mat_list))
+sigma = as(sigma,'dgCMatrix')
+n = nrow(sigma)
+tau_var <- 0.2
+x <- mvrnorm(1, rep(0,n), tau_var*sigma)
+pred = rnorm(n,0,1)
+myrates <- exp(x+0.1*pred-1)
+y <- rexp(n, rate = myrates)
+cen <- rexp(n, rate = 0.02 )
+ycen <- pmin(y, cen)
+outcome <- cbind(ycen,as.numeric(y <= cen))
+head(outcome)
+
+bls <- c(1)
+for(i in (size[1]-1):1)
+{bls <- c(bls, c(rep(offd,i),1))}
+tmat <- bdsmatrix(blocksize=size, blocks=rep(bls,n_f),dimnames=list(as.character(1:n),as.character(1:n)))
+re = coxmeg(outcome,sigma,type='bd',X=pred,order=1,detap='diagonal')
+re
+re_coxme = coxme(Surv(outcome[,1],outcome[,2])~as.matrix(pred)+(1|as.character(1:n)), varlist=list(tmat),ties='breslow')
+re_coxme
+outcome_fg <- cbind(fg_df_sub$Alzheimers_disease_and_other_dementias_AGE, fg_df_sub$Alzheimers_disease_and_other_dementias)
+head(outcome_fg)
+str(outcome_fg)
+pred_fg <- fg_df_sub$chr19_44908684_T_C
+str(pred_fg)
+
+tic()
+re = coxmeg(outcome_fg,grm_sub_sparse,type='sparse',X=pred_fg,order=1,detap='diagonal')
+toc()
+tic()
+re = coxmeg(outcome_fg,bdiag(grm_sub_sparse),type='bd',X=pred_fg,order=1,detap='diagonal')
+toc()
+re
+tic()
+re = coxmeg(outcome,grm_sub_sparse,type='sparse',X=pred,order=1,detap='diagonal')
+toc()
+tic()
+re = coxmeg(outcome_fg,grm_sub_sparse,type='sparse',X=pred_fg,order=1)#,detap='diagonal')
+toc()
+
+
+#metagen version of meta-analysis
+hr_df_both$loghr_m <- NA
+hr_df_both$loghr_se_m <- NA
+hr_df_both$loghr_p_m <- NA
+hr_df_both$loghr_i2 <- NA
+for (i in 1:nrow(hr_df_both)) {
+    m <- metagen(TE = c(hr_df_both$loghr_fg[i], hr_df_both$loghr_uk[i]) ,
+             seTE = c(hr_df_both$loghr_se_fg[i], hr_df_both$loghr_se_uk[i]),
+             #data=madata,
+             #studlab=paste(Author),
+             comb.fixed = TRUE,
+             comb.random = FALSE,
+             prediction=TRUE,
+             sm="log-HR")
+    hr_df_both$loghr_m[i] <- m$TE.fixed
+    hr_df_both$loghr_se_m[i] <- m$seTE.fixed
+    hr_df_both$loghr_p_m[i] <- m$pval.fixed
+    hr_df_both$loghr_i2[i] <- m$I2
+}
+
+
+Hei,
+
+Olen todella pahoillani tapahtuneesta. Joskus kliininen arvio kuvantamisen tarpeesta pettää, minun olisi pitänyt olla 
+

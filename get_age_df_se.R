@@ -16,7 +16,8 @@ get_age_df_se <- function(endpoint, rsid, method, cohort, fg_df) {
                        n_death=NA,
                        person_time=NA,
                        outcome_incidence_fg=NA)
-  age_df$age_name <- as.character(age_df$age_name)
+    age_df$age_name <- as.character(age_df$age_name)
+    endpoint_age <- paste(endpoint, "_AGE", sep="")
 
     if (method == "coxph" | method == "crude_incidence") {
         
@@ -68,12 +69,19 @@ get_age_df_se <- function(endpoint, rsid, method, cohort, fg_df) {
             age_df$n_death[i] = sum(temp$death)
             age_df$n[i] = nrow(temp)
             age_df$n_outcome[i] = sum(temp$outcome)
+            
+            if (age_df$n_outcome[i] <= 40) {
+                next
+            }
 
             if (method == "coxph") {
               # predict outcome
               form <- formula(paste("Surv(futime, outcome) ~ ", rsid, " + ", covariates_formula, sep=""))
-              fit_outcome <- suppressWarnings(coxph(formula = form,
-                                 data=temp))
+              fit_outcome <- tryCatch(suppressWarnings(coxph(formula = form,
+                           data=temp)), error=function(err) NA)
+              if (is.na(fit_outcome)[1]) {
+                  next
+              }
                 
               #only if model is fit, store HRs
               if (!is.na(fit_outcome$coefficients[1])) {
@@ -144,8 +152,11 @@ get_age_df_se <- function(endpoint, rsid, method, cohort, fg_df) {
 
         # predict outcome
         form <- formula(paste("Surv(", endpoint_age, ", ", endpoint,") ~ ", rsid, " + ", covariates_formula, sep=""))
-        fit_outcome <- suppressWarnings(coxph(formula = form,
-                           data=temp))
+        fit_outcome <- tryCatch(suppressWarnings(coxph(formula = form,
+                           data=temp)), error=function(err) NA)
+        if (is.na(fit_outcome)[1]) {
+          next
+        }
 
         # save HR
         age_df$loghr <- fit_outcome$coefficients[1]
